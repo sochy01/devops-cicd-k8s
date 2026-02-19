@@ -1,0 +1,43 @@
+name: CI-CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1️⃣ Checkout code
+    - name: Checkout repo
+      uses: actions/checkout@v3
+
+    # 2️⃣ Docker login to Docker Hub
+    - name: Docker login
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    # 3️⃣ Build Docker image
+    - name: Build Docker image
+      run: |
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/devops-app:latest .
+
+    # 4️⃣ Push Docker image to Docker Hub
+    - name: Push Docker image
+      run: |
+        docker push ${{ secrets.DOCKER_USERNAME }}/devops-app:latest
+
+    # 5️⃣ Set kubeconfig
+    - name: Set kubeconfig
+      run: echo "${{ secrets.KUBECONFIG }}" > kubeconfig
+
+    # 6️⃣ Deploy to Kubernetes
+    - name: Deploy to Kubernetes
+      run: |
+        export KUBECONFIG=kubeconfig
+        kubectl apply -f k8s/
+
